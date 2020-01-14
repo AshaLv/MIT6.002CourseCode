@@ -340,24 +340,23 @@ class HashTable:
         self.random_a = floor(random() * (2**64-1))
         self.random_b = floor(random() * (2**64-1))
         self.good_level = 1
+        self.new_hash_table = []
     def build_hash_table(self):
         for i in range(self.m):
             self.hash_table.append(None)
+    def shrink_and_grow_common_fun(self,m):
+        self.m = m
+        for i in range(self.m):
+            self.new_hash_table.append(None)
+        for linked_list_item in self.hash_table:
+            self.reinsert(linked_list_item)
+        self.hash_table = []
+        self.hash_table.extend(self.new_hash_table)
+        self.new_hash_table = []
     def shrink(self):
-        if self.n <= self.m/4:
-            self.m = self.m // 2
-            for linked_list_item in self.hash_table:
-                self.hash_table[linked_list_item.position] = None
-                self.reinsert(linked_list_item)
+        self.shrink_and_grow_common_fun(self.m // 2)
     def grow(self):
-        if self.n >= self.m:
-            self.m = self.m * 2
-            for i in range(self.m):
-                self.hash_table.append(None)
-            for linked_list_item in self.hash_table:
-                if linked_list_item:
-                    self.hash_table[linked_list_item.position] = None
-                    self.reinsert(linked_list_item)
+        self.shrink_and_grow_common_fun(self.m * 2)
     def reinsert(self,linked_list_item):
         if linked_list_item:
             if linked_list_item.next:
@@ -405,7 +404,8 @@ class HashTable:
             print("item:(",key,",",linked_list_item.val,") has been deleted!")
         if not is_reinsert:
             self.n -= 1
-        self.shrink()
+        if self.n <= self.m/4:
+            self.shrink()
     def insert(self,good_level,item,is_reinsert=False):
         if good_level == None:
             good_level = self.good_level
@@ -422,13 +422,17 @@ class HashTable:
         prior_linked_list_item = self.hash_table[non_integer]
         linked_list_item = LinkedListItem(key,val)
         linked_list_item.position = non_integer
-        self.hash_table[non_integer] = linked_list_item
+        if is_reinsert:
+            self.new_hash_table[non_integer] = linked_list_item
+        else:
+            self.hash_table[non_integer] = linked_list_item
         if prior_linked_list_item:
             linked_list_item.next = prior_linked_list_item
             prior_linked_list_item.prev = linked_list_item
         if not is_reinsert:
             self.n += 1
-        self.grow()
+        if self.n >= self.m:
+            self.grow()
     def hash_function_bad(self,key):
         return hash(key) % self.m
     def hash_function_good(self,key):
@@ -491,7 +495,95 @@ def find_s_in_t_start_position(start_pos,srh,trh):
     if srh.item() == trh.item():
         return start_pos
 
+class OpenAddressingHashTable(HashTable):
+    DELETEME = "delete me"
+    def __init__(self,size):
+        super().__init__(size)
+        self.probing_index = 0
+    def grow(self):
+        if self.n >= self.m*9/10:
+            super().grow()
+    def hash_to_odd(self,key):
+        v = hash(key)
+        if v % 2 == 0:
+            return v + 1
+        return v
+    def hash_function_good(self,key):
+        hash_from_h1 = super().hash_function_good(key)
+        hash_from_h2 = self.hash_to_odd(key)
+        slot = (hash_from_h1 + self.probing_index*hash_from_h2) % self.m
+        return slot
+    def get_item(self,key):
+        slot = self.hash_function_good(key)
+        item = self.hash_table[slot]
+        if not item:
+            return None
+        else:
+            return (item,slot)
+    def is_none(self,slot,key):
+        if self.hash_table[slot] == None or self.hash_table[slot] == OpenAddressingHashTable.DELETEME:
+            self.probing_index = 0
+            return True
+        elif self.hash_table[slot][0] == key:
+            print("key already exists")
+            return 'end'
+        else:
+            self.probing_index += 1
+    def not_equal(self,item,key):
+        if item:
+            if item == OpenAddressingHashTable.DELETEME or item[0] != key:
+                self.probing_index += 1
+                return True
+        self.probing_index = 0
+    def search(self,key):
+        item,slot = self.get_item(key) or (None,None)
+        if not item:
+            print(str(key),"not exists")
+        if self.not_equal(item,key):
+            return self.search(key)
+        if item:
+            return item[1]
+    def reinsert(self,item):
+        if item:
+            self.insert(item,True)
+    def delete(self,key,is_reinsert=False):
+        item,slot = self.get_item(key) or (None,None)
+        if not item:
+            print(str(key),"not exists, so no necessary to delete it")
+            return
+        else:
+            if self.not_equal(item,key):
+                return self.delete(key)
+            self.hash_table[slot] = OpenAddressingHashTable.DELETEME
+            print("have deleted it")
+        if not is_reinsert:
+            self.n -= 1
+        if self.n <= self.m/4:
+            self.shrink()
+    def insert(self,item,is_reinsert=False):
+        slot = self.hash_function_good(item[0])
+        message = self.is_none(slot,item[0])
+        if message == "end":
+            return
+        elif message:
+            self.hash_table[slot] = item
+            if not is_reinsert:
+                self.n += 1
+            self.grow()
+        else:
+            self.insert(item)
+    def update(self,key,new_val):
+        item,slot = self.get_item(key) or (None,None)
+        if not item:
+            print(str(key),"not exists")
+        else:
+            if self.not_equal(item,key):
+                return self.update(key,new_val)
+            self.hash_table[slot] = (key,new_val)
+    
+
 def main():
     pass
+
 if __name__ == "__main__":
     main()
