@@ -580,6 +580,73 @@ class OpenAddressingHashTable(HashTable):
             if self.not_equal(item,key):
                 return self.update(key,new_val)
             self.hash_table[slot] = (key,new_val)
+def calculate_square_root(prev_val,val,precision,next_precisiton):
+    #in main()
+    # val = 19737661973766
+    # import math
+    # print("system: ",math.sqrt(val))
+    # print("me: ",calculate_square_root(1,val,100000,3))
+    if val < 0:
+        return 
+    if val == 1:
+        return 1
+    if len(str(prev_val)) >= precision+2:
+        return float((str(prev_val)[0:precision+2]))
+    else:
+        t = prev_val
+        a = (prev_val+val/prev_val)/2
+        prev_val = float(str(a)[0:next_precisiton])
+        if prev_val == t:
+            return prev_val
+        next_precisiton = next_precisiton*2
+        return calculate_square_root(prev_val,val,precision,next_precisiton)
+def multiply4(x,y,power):
+    #in main()
+    # print("system: ",342453243787676756342453243787676756*342453243787676756342453243787676756)
+    # print("me: ",multiply4(342453243787676756342453243787676756,342453243787676756342453243787676756,128))
+    if (x <= 1) or (y <= 1):
+        if x == 1:
+            return y
+        elif y == 1:
+            return x
+        else:
+            return 0
+    else:
+        power_by_2 = power >> 1
+        x1 = x >> power_by_2
+        x0 = x - (x1 << power_by_2)
+        y1 = y >> power_by_2
+        y0 = y - (y1 << power_by_2)
+        z0 = multiply4(x0,y0,power_by_2)
+        z2 = multiply4(x1,y1,power_by_2)
+        return (z2<<power) + ((multiply4(x0,y1,power_by_2)+multiply4(x1,y0,power_by_2))<<power_by_2) + z0
+
+def multiply3(x,y,power):
+    #in main()
+    # print("system: ",1444324324*184432425342)
+    # print("me: ",multiply3(1444324324,184432425342,32))
+    if (x <= 1) or (y <= 1):
+        if x == 1:
+            return y
+        elif y == 1:
+            return x
+        else:
+            return 0
+    else:
+        if power > 1:
+            power_by_2 = power >> 1
+        else:
+            power_by_2 = 1
+        x1 = x >> power_by_2
+        x0 = x - (x1 << power_by_2)
+        y1 = y >> power_by_2
+        y0 = y - (y1 << power_by_2)
+        z0 = multiply3(x0,y0,power_by_2)
+        z2 = multiply3(x1,y1,power_by_2)
+        z1 = multiply3(x0+x1,y0+y1,power_by_2) - z0 - z2
+        if power_by_2 == 1:
+            return (z2<<2) + (z1<<power_by_2) + z0
+        return (z2<<power) + (z1<<power_by_2) + z0
     
 
 def main():
