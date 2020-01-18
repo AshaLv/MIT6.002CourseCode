@@ -580,28 +580,48 @@ class OpenAddressingHashTable(HashTable):
             if self.not_equal(item,key):
                 return self.update(key,new_val)
             self.hash_table[slot] = (key,new_val)
-def calculate_square_root(prev_val,val,precision,next_precisiton):
-    #in main()
-    # val = 19737661973766
+def get_rid_of_float(float_val,float_val_dot_index):
+    float_val_str = str(float_val)[:float_val_dot_index]
+    for i in range(float_val_dot_index+1,float_val_dot_index+13):
+        try:
+            float_val_str += str(float_val)[i]
+        except Exception as e:
+            float_val_str += "0"
+    prev_val = int(float_val_str)
+    return prev_val
+
+def is_real_float(index,val):
+    if index != -1 and str(val)[index+1:] != "0":
+        return True
+
+def calculate_square_root(prev_val,val):
+    # val = 267868768
     # import math
+    # print("me: ",calculate_square_root(1,val))
     # print("system: ",math.sqrt(val))
-    # print("me: ",calculate_square_root(1,val,100000,3))
-    if val < 0:
+    val_copy = val
+    if val_copy < 0:
         return 
-    if val == 1:
+    if val_copy == 1:
         return 1
-    if len(str(prev_val)) >= precision+2:
-        return float((str(prev_val)[0:precision+2]))
+    prev_val_copy = prev_val
+    prev_val_dot_index = str(prev_val).find(".")
+    if is_real_float(prev_val_dot_index,prev_val):
+        prev_val = get_rid_of_float(prev_val,prev_val_dot_index)
+        val = get_rid_of_float(val,len(str(val)))
+        print(val)
+    newton_result = prev_val_copy + divide(a=int(val),b=int(prev_val))
+    newton_result_dot_index = str(newton_result).find(".")
+    if is_real_float(newton_result_dot_index,newton_result):
+        newton_result = get_rid_of_float(newton_result,newton_result_dot_index)
+        current_val = divide(newton_result,2000000000000)
     else:
-        t = prev_val
-        a = (prev_val+val/prev_val)/2
-        prev_val = float(str(a)[0:next_precisiton])
-        if prev_val == t:
-            return prev_val
-        next_precisiton = next_precisiton*2
-        return calculate_square_root(prev_val,val,precision,next_precisiton)
+        current_val = divide(int(newton_result),2)
+    print(abs(current_val - prev_val_copy))
+    if abs(current_val - prev_val_copy) < 0.00000001:
+        return current_val
+    return calculate_square_root(current_val,val_copy)
 def multiply4(x,y,power):
-    #in main()
     # print("system: ",342453243787676756342453243787676756*342453243787676756342453243787676756)
     # print("me: ",multiply4(342453243787676756342453243787676756,342453243787676756342453243787676756,128))
     if (x <= 1) or (y <= 1):
@@ -622,7 +642,6 @@ def multiply4(x,y,power):
         return (z2<<power) + ((multiply4(x0,y1,power_by_2)+multiply4(x1,y0,power_by_2))<<power_by_2) + z0
 
 def multiply3(x,y,power):
-    #in main()
     # print("system: ",1444324324*184432425342)
     # print("me: ",multiply3(1444324324,184432425342,32))
     if (x <= 1) or (y <= 1):
@@ -647,9 +666,37 @@ def multiply3(x,y,power):
         if power_by_2 == 1:
             return (z2<<2) + (z1<<power_by_2) + z0
         return (z2<<power) + (z1<<power_by_2) + z0
+
+def divide(a=1,b=1,prev_val=1,R=128):
+    # print("system:",4/1111115)
+    # print("me:",divide(4,1111115))
+    current_val = (prev_val << 1) - ((multiply3(multiply3(prev_val,prev_val,128),b,128))>>R)
+    if abs(current_val - prev_val) < 0.000000000001:
+        return transform_to_float(multiply3(current_val,a,128),R)
+    else:
+        return divide(a,b,current_val,R)
+
+def transform_to_float(big_number,R):
+    high_position_bits = big_number >> R
+    low_float_position_bits = bin(big_number - (high_position_bits<<R))[2:]
+    float_val = 0
+    v = 1
+    for i in range(0,R):
+        v = multiply3(v,5,128)
+        start_point = len(low_float_position_bits) + i - R
+        if start_point < 0:
+            continue
+        else:
+            if low_float_position_bits[start_point] == "1":
+                float_val += float("0."+str(0)*(i+1-len(str(v)))+str(v)) 
+    return float(high_position_bits+float_val)
     
 
 def main():
+    val = 2
+    import math
+    print("me: ",calculate_square_root(1,val))
+    print("system: ",math.sqrt(val))
     pass
 
 if __name__ == "__main__":
