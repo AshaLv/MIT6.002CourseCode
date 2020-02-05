@@ -690,14 +690,86 @@ def transform_to_float(big_number,R):
             if low_float_position_bits[start_point] == "1":
                 float_val += float("0."+str(0)*(i+1-len(str(v)))+str(v)) 
     return float(high_position_bits+float_val)
-    
+
+class UndirectedGraph:
+    def __init__(self,u):
+        self.vertices = [u]
+    def adj(self,u,v):
+        self.vertices.append(v)
+        u.edges.append(v)
+        v.edges.append(u)
+    def neighbers(self,v):
+        return v.edges
+    def bfs(self,u,v,route=True):
+        level = {u: 0}
+        parent = {u: None}
+        i = 1
+        current_level = [u]
+        end_search = False
+        while current_level:
+            next_level = []
+            for vertex in current_level:
+                if vertex == v:
+                    end_search = True
+                    break
+                neighbers = self.neighbers(vertex)
+                for next_level_vertex in neighbers:
+                    if next_level_vertex not in level:
+                        level[next_level_vertex] = i
+                        parent[next_level_vertex] = vertex
+                        next_level.append(next_level_vertex)
+                i += 1
+            if end_search:
+                if route:
+                    route_info = str(v)
+                    while parent[v]:
+                        route_info = str(parent[v]) + "->" + route_info
+                        v = parent[v]
+                    return route_info
+                else:
+                    return "there is " + v + "in the graph"
+            current_level = next_level
+        return "no path leading to the vertex in the graph"
+
+
+class DirectedGraph(UndirectedGraph):
+    def adj(self,u,v):
+        u.edges.append(v)
+        if u in self.vertices and v in self.vertices:
+            return
+        elif u in self.vertices:
+            self.vertices.append(v)
+        else:
+            self.vertices.append(u)
+class LinkedNode:
+    def __init__(self,val):
+        self.val = val
+        self.edges = []
+    def __str__(self):
+        return self.val
+    def __repr__(self):
+        return self.val
+    def __hash__(self):
+        return ord((self.val))
+            
 
 def main():
-    val = 2
-    import math
-    print("me: ",calculate_square_root(1,val))
-    print("system: ",math.sqrt(val))
-    pass
+    a = LinkedNode("a")
+    b = LinkedNode("b")
+    c = LinkedNode("c")
+    d = LinkedNode("d")
+    e = LinkedNode("e")
+    f = LinkedNode("f")
+    q = LinkedNode("q")
+    directedGraph = DirectedGraph(a)
+    directedGraph.adj(a,f)
+    directedGraph.adj(f,a)
+    directedGraph.adj(f,b)
+    directedGraph.adj(a,c)
+    directedGraph.adj(b,d)
+    directedGraph.adj(b,e)
+    directedGraph.adj(b,c)
+    print(directedGraph.bfs(e,q))
 
 if __name__ == "__main__":
     main()
