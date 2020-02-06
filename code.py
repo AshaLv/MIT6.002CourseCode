@@ -694,15 +694,56 @@ def transform_to_float(big_number,R):
 class UndirectedGraph:
     def __init__(self,u):
         self.vertices = [u]
+        self.parent = {}
+        self.level = {}
+        self.path_in_one_depth_list = []
+        self.topologic_order = []
     def adj(self,u,v):
         self.vertices.append(v)
         u.edges.append(v)
         v.edges.append(u)
+    def add_vertex(self,v):
+        self.vertices.append(v)
     def neighbers(self,v):
         return v.edges
-    def bfs(self,u,v,route=True):
-        level = {u: 0}
-        parent = {u: None}
+    def topologic_sort(self):
+        self.topologic_order = []
+        result = self.dfs(route=True,cycle_check=True)
+        if result == "a cycle existed":
+            return result
+        self.topologic_order.reverse()
+        return self.topologic_order
+    def dfs(self,route=True,cycle_check=False):
+        self.parent = {}
+        for v in self.vertices:
+            if v not in self.parent:
+                result = self.dfs_visit_from_u_to_v(v,None,route,cycle_check)
+                self.topologic_order.append(v)
+                if result and cycle_check:
+                    return result
+    def dfs_visit_from_u_to_v(self,u,v,route=True,cycle_check=False):
+        self.path_in_one_depth_list.append(u)
+        if u not in self.parent:
+            self.parent[u] = None
+        neighbers = u.edges
+        if not neighbers:
+            self.path_in_one_depth_list.pop()
+        for next_vertex in neighbers:
+            if next_vertex not in self.parent:
+                self.parent[next_vertex] = u
+                if next_vertex == v:
+                    return self.show_path(v,route)
+                path = self.dfs_visit_from_u_to_v(next_vertex,v,route,cycle_check)
+                self.topologic_order.append(next_vertex)
+                if path:
+                    return path
+            else:
+                if cycle_check:
+                    if next_vertex in self.path_in_one_depth_list:
+                        return "a cycle existed"
+    def bfs_visit_from_u_to_v(self,u,v,route=True):
+        self.level = {u: 0}
+        self.parent = {u: None}
         i = 1
         current_level = [u]
         end_search = False
@@ -714,22 +755,24 @@ class UndirectedGraph:
                     break
                 neighbers = self.neighbers(vertex)
                 for next_level_vertex in neighbers:
-                    if next_level_vertex not in level:
-                        level[next_level_vertex] = i
-                        parent[next_level_vertex] = vertex
+                    if next_level_vertex not in self.level:
+                        self.level[next_level_vertex] = i
+                        self.parent[next_level_vertex] = vertex
                         next_level.append(next_level_vertex)
                 i += 1
             if end_search:
-                if route:
-                    route_info = str(v)
-                    while parent[v]:
-                        route_info = str(parent[v]) + "->" + route_info
-                        v = parent[v]
-                    return route_info
-                else:
-                    return "there is " + v + "in the graph"
+                return self.show_path(v,route)
             current_level = next_level
         return "no path leading to the vertex in the graph"
+    def show_path(self,v,route):
+        if route:
+            route_info = str(v)
+            while self.parent[v]:
+                route_info = str(self.parent[v]) + "->" + route_info
+                v = self.parent[v]
+            return route_info
+        else:
+            return "there is " + v + "in the graph"
 
 
 class DirectedGraph(UndirectedGraph):
@@ -752,7 +795,6 @@ class LinkedNode:
     def __hash__(self):
         return ord((self.val))
             
-
 def main():
     a = LinkedNode("a")
     b = LinkedNode("b")
@@ -761,15 +803,15 @@ def main():
     e = LinkedNode("e")
     f = LinkedNode("f")
     q = LinkedNode("q")
-    directedGraph = DirectedGraph(a)
+    directedGraph = DirectedGraph(d)
+    directedGraph.add_vertex(q)
     directedGraph.adj(a,f)
-    directedGraph.adj(f,a)
     directedGraph.adj(f,b)
     directedGraph.adj(a,c)
     directedGraph.adj(b,d)
     directedGraph.adj(b,e)
     directedGraph.adj(b,c)
-    print(directedGraph.bfs(e,q))
+    print(directedGraph.topologic_sort())
 
 if __name__ == "__main__":
     main()
