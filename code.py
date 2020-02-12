@@ -833,6 +833,7 @@ class WeightedGraph(DirectedGraph):
             weight = weighted_vertex["weight"]
             if self.distance[v] > (self.distance[vertex] + weight):
                 self.distance[v] = self.distance[vertex] + weight
+                self.predecessor[v] = vertex
     def dfs_visit_from_u_to_v(self,u,v,route=True,cycle_check=False):
         self.path_in_one_depth_list.append(u)
         if u not in self.parent:
