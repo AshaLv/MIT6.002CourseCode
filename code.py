@@ -741,6 +741,8 @@ class UndirectedGraph:
                 if cycle_check:
                     if next_vertex in self.path_in_one_depth_list:
                         return "a cycle existed"
+            if self.path_in_one_depth_list:
+                self.path_in_one_depth_list.pop()
     def bfs_visit_from_u_to_v(self,u,v,route=True):
         self.level = {u: 0}
         self.parent = {u: None}
@@ -788,30 +790,96 @@ class LinkedNode:
     def __init__(self,val):
         self.val = val
         self.edges = []
+        self.in_edges = []
     def __str__(self):
         return self.val
     def __repr__(self):
         return self.val
     def __hash__(self):
         return ord((self.val))
-            
-def main():
-    a = LinkedNode("a")
-    b = LinkedNode("b")
-    c = LinkedNode("c")
-    d = LinkedNode("d")
-    e = LinkedNode("e")
-    f = LinkedNode("f")
-    q = LinkedNode("q")
-    directedGraph = DirectedGraph(d)
-    directedGraph.add_vertex(q)
-    directedGraph.adj(a,f)
-    directedGraph.adj(f,b)
-    directedGraph.adj(a,c)
-    directedGraph.adj(b,d)
-    directedGraph.adj(b,e)
-    directedGraph.adj(b,c)
-    print(directedGraph.topologic_sort())
 
+class WeightedGraph(DirectedGraph):
+    def __init__(self,u):
+        super().__init__(u)
+        self.predecessor = {}
+        self.distance = {}
+    def adj(self,u,v):
+        u.edges.append(v)
+        v["vertex"].in_edges.append({"vertex":u,"weight":v["weight"]})
+        if u in self.vertices and v["vertex"] in self.vertices:
+            return
+        elif u in self.vertices:
+            self.vertices.append(v["vertex"])
+        else:
+            self.vertices.append(u)
+    def from_source_to_calculate_shortest_paths_using_dfs(self,s,v):
+        self.predecessor = {}
+        self.distance = {}
+        import math
+        for v in self.vertices:
+            self.distance[v] = math.inf
+            self.predecessor[v] = None
+        self.distance[s] = 0
+        topologic_order = self.topologic_sort()
+        s_index = None
+        for i in range(0,len(topologic_order)):
+            if topologic_order[i] == s:
+                s_index = i 
+            if s_index and i > s_index:
+                self.calculate_shortest_path(topologic_order[i])
+    def calculate_shortest_path(self,v):
+        for weighted_vertex in v.in_edges:
+            vertex = weighted_vertex["vertex"]
+            weight = weighted_vertex["weight"]
+            if self.distance[v] > (self.distance[vertex] + weight):
+                self.distance[v] = self.distance[vertex] + weight
+    def dfs_visit_from_u_to_v(self,u,v,route=True,cycle_check=False):
+        self.path_in_one_depth_list.append(u)
+        if u not in self.parent:
+            self.parent[u] = None
+        neighbers = u.edges
+        if not neighbers:
+            self.path_in_one_depth_list.pop()
+        for next_vertex in neighbers:
+            next_weighted_vertex = next_vertex["vertex"]
+            weight = next_vertex["weight"]
+            if next_weighted_vertex not in self.parent:
+                self.parent[next_weighted_vertex] = u
+                if next_weighted_vertex == v:
+                    return self.show_path(v,route)
+                path = self.dfs_visit_from_u_to_v(next_weighted_vertex,v,route,cycle_check)
+                self.topologic_order.append(next_weighted_vertex)
+                if path:
+                    return path
+            else:
+                if cycle_check:
+                    if next_weighted_vertex in self.path_in_one_depth_list:
+                        return "a cycle existed"
+            if self.path_in_one_depth_list:
+                self.path_in_one_depth_list.pop()
+        
+
+   
+def main():
+    r = LinkedNode("r")
+    s = LinkedNode("s")
+    t = LinkedNode("t")
+    x = LinkedNode("x")
+    y = LinkedNode("y")
+    z = LinkedNode("z")
+    wg = WeightedGraph(r)
+    wg.adj(r,{"vertex":s,"weight":5})
+    wg.adj(r,{"vertex":t,"weight":3})
+    wg.adj(s,{"vertex":t,"weight":2})
+    wg.adj(s,{"vertex":x,"weight":6})
+    wg.adj(t,{"vertex":x,"weight":7})
+    wg.adj(t,{"vertex":y,"weight":4})
+    wg.adj(t,{"vertex":z,"weight":2})
+    wg.adj(x,{"vertex":y,"weight":-1})
+    wg.adj(x,{"vertex":z,"weight":1})
+    wg.adj(y,{"vertex":z,"weight":-2})
+    print(wg.from_source_to_calculate_shortest_paths_using_dfs(s,z))
+    print(wg.predecessor)
+    print(wg.distance)
 if __name__ == "__main__":
     main()
