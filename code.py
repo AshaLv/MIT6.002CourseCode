@@ -858,29 +858,132 @@ class WeightedGraph(DirectedGraph):
                         return "a cycle existed"
             if self.path_in_one_depth_list:
                 self.path_in_one_depth_list.pop()
-        
+
+class FibonacciHeap:
+    HAVE_CHANGED = False # if min node changed, be True
+    def __init__(self):
+        self.min_root = None # the node in the root list with the minimum key value
+        self.number_of_nodes = 0 # the number of nodes being inserted
+        self.bucket = {}
+    def change_min_node(self,min_node,new_node):
+        min_node_next = min_node.next
+        min_node_prev = min_node.prev
+        # compares the new node with min node
+        if new_node.key_value < min_node.key_value:
+            # the new node has smaller key value, so change the min node to this new node
+            min_node.next = new_node
+            new_node.next = min_node_next
+            new_node.prev = min_node
+            FibonacciHeap.HAVE_CHANGED = True
+        else:
+            min_node.prev = new_node
+            new_node.next = min_node
+            new_node.prev = min_node_prev
+            FibonacciHeap.HAVE_CHANGED = False
+    def insert(self,fibonacci_node):
+        if not self.min_root:
+            self.min_root = fibonacci_node
+            return
+        self.change_min_node(self.min_root,fibonacci_node)
+        if FibonacciHeap.HAVE_CHANGED:
+            self.min_root = fibonacci_node
+    def merge_and_change_min_node(self,smaller_node,greater_node):
+        self.bucket[smaller_node.rank] = None
+        smaller_node.rank += 1
+        self.bucket[smaller_node.rank] = smaller_node
+        greater_node.parent = smaller_node
+        self.change_min_node(smaller_node.child,greater_node)
+        if FibonacciHeap.HAVE_CHANGED:
+            smaller_node.child = greater_node
+    def merge(self,left_node,right_node):
+        left_node_key_value = left_node.key_value
+        right_node_key_value = right_node.key_value
+        if left_node_key_value <= right_node_key_value:
+            # right node will be the child of left node
+            self.merge_and_change_min_node(left_node,right_node)
+        else:
+            # left node will be the child of right node
+            self.merge_and_change_min_node(right_node,left_node)
+    def delete_min(self):
+        min_root = self.min_root
+        if not min_root:
+            return 
+        # after put all children of min root to the root list, return a node for having way to get the root list
+        start_node = self.put_children_of_min_root_to_root_list(min_root) 
+        if start_node == min_root:
+            # only one node in the heap
+            self.min_root = None
+        else:
+            self.confirm_new_min_root(start_node)
+            self.consolidate(start_node)
+        return min_root
+    def put_children_of_min_root_to_root_list(self,min_root):
+        min_root_next = min_root.next
+        min_root_prev = min_root.prev
+        min_root_child = min_root.child
+        self.number_of_nodes -= 1
+        if min_root_child:
+            min_root_prev.next = min_root_child
+            # the last child of min root
+            min_root_child_end = min_root_child
+            while min_root_child.next != min_root_child:
+                min_root_child_end = min_root_child.next
+            min_root_child_end.next = min_root_next
+            return min_root_child_end
+        else:
+            min_root_prev.next = min_root_next
+            min_root_next.prev = min_root_prev
+            return min_root_next
+    def confirm_new_min_root(self,start_node):
+        self.min_root = start_node
+        start_node_next = start_node.next
+        while start_node_next != start_node:
+            if start_node_next.key_value < self.min_root.key_value:
+                self.min_root = start_node_next
+                start_node_next = start_node_next.next
+    def consolidate(self,start_node):
+        start_node_next = start_node
+        while start_node_next.next != start_node:
+            self.put_into_bucket(start_node_next)
+    def put_into_bucket(self,fibonacci_node):
+        rank = fibonacci_node.rank
+        if self.bucket[rank]:
+            if self.bucket[rank] == fibonacci_node:
+                # same node
+                return
+            else:
+                if not self.bucket[rank]:
+                    self.bucket[rank] = fibonacci_node
+                else:
+                    self.merge(self.bucket[rank],fibonacci_node)
+    def decrease_key(self,fibonacci_node,new_key_value):
+        parent = fibonacci_node.parent
+        if parent == None or parent.key_value < new_key_value:
+            # it means it is a tree root
+            fibonacci_node.key_value = new_key_value
+        else:
+            self.cut(fibonacci_node)
+            while parent and parent.marked:
+                self.cut(parent)
+                parent = parent.parent
+    def cut(self,fibonacci_node):
+        if not fibonacci_node.parent.marked:
+            fibonacci_node.parent.marked = True
+        self.insert(fibonacci_node)
+        fibonacci_node.parent = None
+class FibonacciNode:
+    def __init__(self,key_name,key_value):
+        self.key_name = key_name
+        self.key_value = key_value
+        self.parent = None
+        self.child = None
+        self.next = self
+        self.prev = self
+        self.marked = False
+        self.rank = 0
 
    
 def main():
-    r = LinkedNode("r")
-    s = LinkedNode("s")
-    t = LinkedNode("t")
-    x = LinkedNode("x")
-    y = LinkedNode("y")
-    z = LinkedNode("z")
-    wg = WeightedGraph(r)
-    wg.adj(r,{"vertex":s,"weight":5})
-    wg.adj(r,{"vertex":t,"weight":3})
-    wg.adj(s,{"vertex":t,"weight":2})
-    wg.adj(s,{"vertex":x,"weight":6})
-    wg.adj(t,{"vertex":x,"weight":7})
-    wg.adj(t,{"vertex":y,"weight":4})
-    wg.adj(t,{"vertex":z,"weight":2})
-    wg.adj(x,{"vertex":y,"weight":-1})
-    wg.adj(x,{"vertex":z,"weight":1})
-    wg.adj(y,{"vertex":z,"weight":-2})
-    print(wg.from_source_to_calculate_shortest_paths_using_dfs(s,z))
-    print(wg.predecessor)
-    print(wg.distance)
+    pass
 if __name__ == "__main__":
     main()
