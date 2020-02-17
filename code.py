@@ -824,13 +824,14 @@ class WeightedGraph(DirectedGraph):
             fib_heap.insert(u)
         shortest_path_s = []
         while fib_heap.number_of_nodes:
-            for u in fib_heap.min_root.out_edges:
+            min_path_vertex = fib_heap.delete_min()
+            print(fib_heap)
+            shortest_path_s.append((min_path_vertex.key_name,min_path_vertex.key_value))
+            for u in min_path_vertex.out_edges:
                 u_vertex = u["vertex"]
                 u_weight = u["weight"]
-                u_new_key_value = fib_heap.min_root.key_value + u_weight
+                u_new_key_value = min_path_vertex.key_value + u_weight
                 fib_heap.decrease_key(u_vertex,u_new_key_value)
-            min_path_vertex = fib_heap.delete_min()
-            shortest_path_s.append((min_path_vertex.key_name,min_path_vertex.key_value))
         return shortest_path_s
     def from_source_to_calculate_shortest_paths_using_dfs(self,s,v):
         self.predecessor = {}
@@ -925,11 +926,20 @@ class FibonacciHeap:
         if FibonacciHeap.HAVE_CHANGED:
             self.min_root = fibonacci_node
     def merge_and_change_min_node(self,smaller_node,greater_node):
+        greater_node_next = greater_node.next
+        smaller_node.next = greater_node_next
+        greater_node_next.prev = smaller_node
         self.bucket[smaller_node.rank] = None
         smaller_node.rank += 1
-        self.bucket[smaller_node.rank] = smaller_node
+        if smaller_node.rank in self.bucket and self.bucket[smaller_node.rank]:
+            self.put_into_bucket(smaller_node)
+        else:
+            self.bucket[smaller_node.rank] = smaller_node
         greater_node.parent = smaller_node
         self.change_min_node(smaller_node.child,greater_node)
+        if not smaller_node.child:
+            greater_node.next = greater_node
+            greater_node.prev = greater_node
         if FibonacciHeap.HAVE_CHANGED:
             smaller_node.child = greater_node
     def merge(self,left_node,right_node):
@@ -979,16 +989,16 @@ class FibonacciHeap:
         self.min_root = start_node
         start_node_next = start_node.next
         while start_node_next != start_node:
-            print(start_node_next)
             if start_node_next.key_value < self.min_root.key_value:
                 self.min_root = start_node_next
             start_node_next = start_node_next.next
     def consolidate(self,start_node):
-        start_node_next = start_node
-        while start_node_next.next != start_node:
-            self.put_into_bucket(start_node_next)
-            start_node_next = start_node_next.next
+        start_node_next = start_node.next
+        self.put_into_bucket(start_node)
+        while start_node_next != start_node:
+            start_node_next = self.put_into_bucket(start_node_next)
     def put_into_bucket(self,fibonacci_node):
+        start_node_next = fibonacci_node.next
         rank = fibonacci_node.rank
         if rank in self.bucket and self.bucket[rank]:
             if self.bucket[rank] == fibonacci_node:
@@ -998,10 +1008,11 @@ class FibonacciHeap:
                 self.merge(self.bucket[rank],fibonacci_node)
         else:
             self.bucket[rank] = fibonacci_node
+        return start_node_next
     def decrease_key(self,fibonacci_node,new_key_value):
         parent = fibonacci_node.parent
         fibonacci_node.key_value = new_key_value
-        if not (parent == None or parent.key_value < new_key_value):
+        if not (parent == None or parent.key_value <= new_key_value):
             # it means it is not a tree root
             self.cut(fibonacci_node)
             while parent and parent.marked:
