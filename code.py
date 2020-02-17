@@ -806,12 +806,32 @@ class WeightedGraph(DirectedGraph):
     def adj(self,u,v):
         u.edges.append(v)
         v["vertex"].in_edges.append({"vertex":u,"weight":v["weight"]})
+        u.out_edges.append({"vertex":v["vertex"],"weight":v["weight"]})
         if u in self.vertices and v["vertex"] in self.vertices:
             return
         elif u in self.vertices:
             self.vertices.append(v["vertex"])
         else:
-            self.vertices.append(u)
+            self.vertices.append(u)        
+    def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
+        fib_heap = FibonacciHeap()
+        import math
+        for u in self.vertices:
+            if u == s:
+                u.key_value = 0
+            else:
+                u.key_value = math.inf
+            fib_heap.insert(u)
+        shortest_path_s = []
+        while fib_heap.number_of_nodes:
+            for u in fib_heap.min_root.out_edges:
+                u_vertex = u["vertex"]
+                u_weight = u["weight"]
+                u_new_key_value = fib_heap.min_root.key_value + u_weight
+                fib_heap.decrease_key(u_vertex,u_new_key_value)
+            min_path_vertex = fib_heap.delete_min()
+            shortest_path_s.append((min_path_vertex.key_name,min_path_vertex.key_value))
+        return shortest_path_s
     def from_source_to_calculate_shortest_paths_using_dfs(self,s,v):
         self.predecessor = {}
         self.distance = {}
@@ -865,22 +885,39 @@ class FibonacciHeap:
         self.min_root = None # the node in the root list with the minimum key value
         self.number_of_nodes = 0 # the number of nodes being inserted
         self.bucket = {}
+    def __str__(self):
+        min_root = self.min_root
+        s = str(min_root)
+        if min_root and min_root.next:
+            min_root_next = min_root.next
+            while min_root_next != self.min_root:
+                s = s + "->" + str(min_root_next)
+                min_root_next = min_root_next.next
+            s = s + "->" + str(min_root_next)
+        return s
     def change_min_node(self,min_node,new_node):
+        if min_node == None:
+            FibonacciHeap.HAVE_CHANGED = True
+            return
         min_node_next = min_node.next
         min_node_prev = min_node.prev
         # compares the new node with min node
         if new_node.key_value < min_node.key_value:
             # the new node has smaller key value, so change the min node to this new node
-            min_node.next = new_node
             new_node.next = min_node_next
             new_node.prev = min_node
+            min_node.next = new_node
+            min_node_next.prev = new_node
             FibonacciHeap.HAVE_CHANGED = True
         else:
-            min_node.prev = new_node
             new_node.next = min_node
             new_node.prev = min_node_prev
+            min_node.prev = new_node
+            min_node_prev.next = new_node
             FibonacciHeap.HAVE_CHANGED = False
-    def insert(self,fibonacci_node):
+    def insert(self,fibonacci_node,operation="insert"):
+        if operation == "insert":
+            self.number_of_nodes += 1
         if not self.min_root:
             self.min_root = fibonacci_node
             return
@@ -924,11 +961,15 @@ class FibonacciHeap:
         self.number_of_nodes -= 1
         if min_root_child:
             min_root_prev.next = min_root_child
+            min_root_child.prev = min_root_prev
             # the last child of min root
             min_root_child_end = min_root_child
-            while min_root_child.next != min_root_child:
-                min_root_child_end = min_root_child.next
+            min_root_child_end_next = min_root_child.next
+            while min_root_child_end_next != min_root_child:
+                min_root_child_end = min_root_child_end_next
+                min_root_child_end_next = min_root_child_end_next.next
             min_root_child_end.next = min_root_next
+            min_root_next.prev = min_root_child_end
             return min_root_child_end
         else:
             min_root_prev.next = min_root_next
@@ -938,52 +979,75 @@ class FibonacciHeap:
         self.min_root = start_node
         start_node_next = start_node.next
         while start_node_next != start_node:
+            print(start_node_next)
             if start_node_next.key_value < self.min_root.key_value:
                 self.min_root = start_node_next
-                start_node_next = start_node_next.next
+            start_node_next = start_node_next.next
     def consolidate(self,start_node):
         start_node_next = start_node
         while start_node_next.next != start_node:
             self.put_into_bucket(start_node_next)
+            start_node_next = start_node_next.next
     def put_into_bucket(self,fibonacci_node):
         rank = fibonacci_node.rank
-        if self.bucket[rank]:
+        if rank in self.bucket and self.bucket[rank]:
             if self.bucket[rank] == fibonacci_node:
                 # same node
                 return
             else:
-                if not self.bucket[rank]:
-                    self.bucket[rank] = fibonacci_node
-                else:
-                    self.merge(self.bucket[rank],fibonacci_node)
+                self.merge(self.bucket[rank],fibonacci_node)
+        else:
+            self.bucket[rank] = fibonacci_node
     def decrease_key(self,fibonacci_node,new_key_value):
         parent = fibonacci_node.parent
-        if parent == None or parent.key_value < new_key_value:
-            # it means it is a tree root
-            fibonacci_node.key_value = new_key_value
-        else:
+        fibonacci_node.key_value = new_key_value
+        if not (parent == None or parent.key_value < new_key_value):
+            # it means it is not a tree root
             self.cut(fibonacci_node)
             while parent and parent.marked:
                 self.cut(parent)
                 parent = parent.parent
     def cut(self,fibonacci_node):
-        if not fibonacci_node.parent.marked:
+        self.insert(fibonacci_node,"cut")
+        if fibonacci_node.parent:
             fibonacci_node.parent.marked = True
-        self.insert(fibonacci_node)
         fibonacci_node.parent = None
 class FibonacciNode:
-    def __init__(self,key_name,key_value):
+    def __init__(self,key_name):
         self.key_name = key_name
-        self.key_value = key_value
+        self.key_value = 0
         self.parent = None
         self.child = None
         self.next = self
         self.prev = self
         self.marked = False
         self.rank = 0
+        self.edges = []
+        self.in_edges = []
+        self.out_edges = []
+    def __str__(self):
+        return self.key_name
+
+
 
    
 def main():
-    pass
+    a = FibonacciNode("a")
+    b = FibonacciNode("b")
+    c = FibonacciNode("c")
+    d = FibonacciNode("d")
+    e = FibonacciNode("e")
+    weighted_graph = WeightedGraph(a)
+    weighted_graph.adj(a,{"vertex":b,"weight":10})
+    weighted_graph.adj(a,{"vertex":c,"weight":3})
+    weighted_graph.adj(b,{"vertex":d,"weight":2})
+    weighted_graph.adj(b,{"vertex":c,"weight":1})
+    weighted_graph.adj(c,{"vertex":b,"weight":4})
+    weighted_graph.adj(c,{"vertex":e,"weight":2})
+    weighted_graph.adj(c,{"vertex":d,"weight":8})
+    weighted_graph.adj(d,{"vertex":e,"weight":7})
+    weighted_graph.adj(e,{"vertex":d,"weight":9})
+    result = weighted_graph.from_source_to_calculate_shortest_paths_using_dijkstra(a)
+    print(result)
 if __name__ == "__main__":
     main()
