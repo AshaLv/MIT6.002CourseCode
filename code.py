@@ -791,6 +791,7 @@ class LinkedNode:
         self.val = val
         self.edges = []
         self.in_edges = []
+        self.out_edges = []
     def __str__(self):
         return self.val
     def __repr__(self):
@@ -813,6 +814,30 @@ class WeightedGraph(DirectedGraph):
             self.vertices.append(v["vertex"])
         else:
             self.vertices.append(u)        
+    def initialize(self,s):
+        self.predecessor = {}
+        self.distance = {}
+        import math
+        for v in self.vertices:
+            self.distance[v] = math.inf
+            self.predecessor[v] = None
+        self.distance[s] = 0
+    def relax_edge(self,from_vertex,to_vertex,weight):
+        if (self.distance[from_vertex] + weight) < self.distance[to_vertex]:
+            self.distance[to_vertex] = self.distance[from_vertex] + weight
+            self.predecessor[to_vertex] = from_vertex.key_name
+            return True
+        return False
+    def from_source_to_calculate_shortest_paths_using_generic_way(self,s,v=None,init=False):
+        if not init:
+            self.initialize(s)
+        if s == v:
+            return
+        for edge in s.out_edges:
+            vertex = edge["vertex"]
+            weight = edge["weight"]
+            if self.relax_edge(s,vertex,weight):
+                self.from_source_to_calculate_shortest_paths_using_generic_way(vertex,v,init=True)
     def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
         fib_heap = FibonacciHeap()
         import math
@@ -825,7 +850,6 @@ class WeightedGraph(DirectedGraph):
         shortest_path_s = []
         while fib_heap.number_of_nodes:
             min_path_vertex = fib_heap.delete_min()
-            print(fib_heap)
             shortest_path_s.append((min_path_vertex.key_name,min_path_vertex.key_value))
             for u in min_path_vertex.out_edges:
                 u_vertex = u["vertex"]
@@ -834,13 +858,7 @@ class WeightedGraph(DirectedGraph):
                 fib_heap.decrease_key(u_vertex,u_new_key_value)
         return shortest_path_s
     def from_source_to_calculate_shortest_paths_using_dfs(self,s,v):
-        self.predecessor = {}
-        self.distance = {}
-        import math
-        for v in self.vertices:
-            self.distance[v] = math.inf
-            self.predecessor[v] = None
-        self.distance[s] = 0
+        self.initialize(s)
         topologic_order = self.topologic_sort()
         s_index = None
         for i in range(0,len(topologic_order)):
@@ -1048,17 +1066,20 @@ def main():
     c = FibonacciNode("c")
     d = FibonacciNode("d")
     e = FibonacciNode("e")
+    f = FibonacciNode("f")
+    g = FibonacciNode("g")
     weighted_graph = WeightedGraph(a)
-    weighted_graph.adj(a,{"vertex":b,"weight":10})
-    weighted_graph.adj(a,{"vertex":c,"weight":3})
-    weighted_graph.adj(b,{"vertex":d,"weight":2})
-    weighted_graph.adj(b,{"vertex":c,"weight":1})
-    weighted_graph.adj(c,{"vertex":b,"weight":4})
+    weighted_graph.adj(a,{"vertex":b,"weight":4})
+    weighted_graph.adj(a,{"vertex":c,"weight":4})
+    weighted_graph.adj(b,{"vertex":c,"weight":4})
+    weighted_graph.adj(c,{"vertex":d,"weight":2})
     weighted_graph.adj(c,{"vertex":e,"weight":2})
-    weighted_graph.adj(c,{"vertex":d,"weight":8})
-    weighted_graph.adj(d,{"vertex":e,"weight":7})
-    weighted_graph.adj(e,{"vertex":d,"weight":9})
-    result = weighted_graph.from_source_to_calculate_shortest_paths_using_dijkstra(a)
-    print(result)
+    weighted_graph.adj(d,{"vertex":e,"weight":2})
+    weighted_graph.adj(e,{"vertex":f,"weight":1})
+    weighted_graph.adj(e,{"vertex":g,"weight":1})
+    weighted_graph.adj(f,{"vertex":g,"weight":1})
+    weighted_graph.from_source_to_calculate_shortest_paths_using_generic_way(a)
+    print(weighted_graph.distance)
+    # print(weighted_graph.predecessor)
 if __name__ == "__main__":
     main()
