@@ -1096,6 +1096,6 @@ def main():
     weighted_graph.adj(f,{"vertex":g,"weight":1})
     weighted_graph.from_source_to_calculate_shortest_paths_using_bellman_ford_way(a)
     print(weighted_graph.distance)
-    # print(weighted_graph.predecessor)
+    print(weighted_graph.predecessor)
 if __name__ == "__main__":
     main()
