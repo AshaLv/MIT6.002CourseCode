@@ -804,10 +804,12 @@ class WeightedGraph(DirectedGraph):
         super().__init__(u)
         self.predecessor = {}
         self.distance = {}
+        self.edges = []
     def adj(self,u,v):
         u.edges.append(v)
         v["vertex"].in_edges.append({"vertex":u,"weight":v["weight"]})
         u.out_edges.append({"vertex":v["vertex"],"weight":v["weight"]})
+        self.edges.append((u,v["vertex"],v["weight"]))
         if u in self.vertices and v["vertex"] in self.vertices:
             return
         elif u in self.vertices:
@@ -826,7 +828,7 @@ class WeightedGraph(DirectedGraph):
         if (self.distance[from_vertex] + weight) < self.distance[to_vertex]:
             self.distance[to_vertex] = self.distance[from_vertex] + weight
             self.predecessor[to_vertex] = from_vertex.key_name
-            return True
+            return to_vertex
         return False
     def from_source_to_calculate_shortest_paths_using_generic_way(self,s,v=None,init=False):
         if not init:
@@ -838,6 +840,20 @@ class WeightedGraph(DirectedGraph):
             weight = edge["weight"]
             if self.relax_edge(s,vertex,weight):
                 self.from_source_to_calculate_shortest_paths_using_generic_way(vertex,v,init=True)
+    def from_source_to_calculate_shortest_paths_using_bellman_ford_way(self,s,init=False):
+        if not init:
+            self.initialize(s)
+        for _ in range(len(self.vertices)-1):
+            for edge in self.edges:
+                u,v,weight = edge
+                self.relax_edge(u,v,weight)
+        self.check_whether_has_negative_cycle()
+    def check_whether_has_negative_cycle(self):
+        for edge in self.edges:
+            u,v,weight = edge
+            if self.relax_edge(u,v,weight):
+                print("there exists a negative cycle")
+                return True
     def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
         fib_heap = FibonacciHeap()
         import math
@@ -1078,7 +1094,7 @@ def main():
     weighted_graph.adj(e,{"vertex":f,"weight":1})
     weighted_graph.adj(e,{"vertex":g,"weight":1})
     weighted_graph.adj(f,{"vertex":g,"weight":1})
-    weighted_graph.from_source_to_calculate_shortest_paths_using_generic_way(a)
+    weighted_graph.from_source_to_calculate_shortest_paths_using_bellman_ford_way(a)
     print(weighted_graph.distance)
     # print(weighted_graph.predecessor)
 if __name__ == "__main__":
