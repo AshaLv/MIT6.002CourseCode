@@ -816,14 +816,17 @@ class WeightedGraph(DirectedGraph):
             self.vertices.append(v["vertex"])
         else:
             self.vertices.append(u)        
-    def initialize(self,s):
-        self.predecessor = {}
-        self.distance = {}
+    def initialize(self,s,distance=None,predecessor=None):
+        if not distance and not predecessor:
+            self.predecessor = {}
+            self.distance = {}
+            distance = self.distance
+            predecessor = self.predecessor
         import math
         for v in self.vertices:
-            self.distance[v] = math.inf
-            self.predecessor[v] = None
-        self.distance[s] = 0
+            distance[v.key_name] = math.inf
+            predecessor[v.key_name] = None
+        distance[s.key_name] = 0
     def relax_edge(self,from_vertex,to_vertex,weight):
         if (self.distance[from_vertex] + weight) < self.distance[to_vertex]:
             self.distance[to_vertex] = self.distance[from_vertex] + weight
@@ -854,27 +857,48 @@ class WeightedGraph(DirectedGraph):
             if self.relax_edge(u,v,weight):
                 print("there exists a negative cycle")
                 return True
-    def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
-        fib_heap = FibonacciHeap()
+    def from_source_to_calculate_shortest_paths_using_bi_dijkstra(self,s,v):
+        forward_fib_heap = FibonacciHeap()
+        backward_fib_heap = FibonacciHeap()
+        forward_distance = {}
+        forward_predecessor = {}
+        backward_distance = {}
+        backward_predecessor = {}
+        self.initialize(s,forward_distance,forward_predecessor)
+        self.initialize(v,backward_distance,backward_predecessor)
         import math
+        import copy
         for u in self.vertices:
-            if u == s:
-                u.key_value = 0
-            else:
-                u.key_value = math.inf
-            fib_heap.insert(u)
+            forward_fib_heap.insert(copy.copy(u))
+            backward_fib_heap.insert(copy.copy(u))
         shortest_path_s = []
         while fib_heap.number_of_nodes:
             min_path_vertex = fib_heap.delete_min()
-            shortest_path_s.append((min_path_vertex.key_name,min_path_vertex.key_value))
+            self.distance[min_path_vertex.key_name] = min_path_vertex.key_value
             if min_path_vertex == v:
                 return shortest_path_s
             for u in min_path_vertex.out_edges:
                 u_vertex = u["vertex"]
                 u_weight = u["weight"]
                 u_new_key_value = min_path_vertex.key_value + u_weight
-                fib_heap.decrease_key(u_vertex,u_new_key_value)
-        return shortest_path_s
+                fib_heap.decrease_key(self.predecessor,min_path_vertex,u_vertex,u_new_key_value)
+    def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
+        fib_heap = FibonacciHeap()
+        self.initialize(s)
+        fib_heap.distance = self.distance
+        fib_heap.predecessor = self.predecessor
+        import math
+        for u in self.vertices:
+            fib_heap.insert(u)
+        while fib_heap.number_of_nodes:
+            min_path_vertex = fib_heap.delete_min()
+            if min_path_vertex == v:
+                return 
+            for u in min_path_vertex.out_edges:
+                u_vertex = u["vertex"]
+                u_weight = u["weight"]
+                u_new_key_value = fib_heap.distance[min_path_vertex.key_name] + u_weight
+                fib_heap.decrease_key(min_path_vertex,u_vertex,u_new_key_value)
     def from_source_to_calculate_shortest_paths_using_dfs(self,s,v):
         self.initialize(s)
         topologic_order = self.topologic_sort()
@@ -922,6 +946,8 @@ class FibonacciHeap:
         self.min_root = None # the node in the root list with the minimum key value
         self.number_of_nodes = 0 # the number of nodes being inserted
         self.bucket = {}
+        self.distance = {}
+        self.predecessor = {}
     def __str__(self):
         min_root = self.min_root
         s = str(min_root)
@@ -939,7 +965,7 @@ class FibonacciHeap:
         min_node_next = min_node.next
         min_node_prev = min_node.prev
         # compares the new node with min node
-        if new_node.key_value < min_node.key_value:
+        if self.distance[new_node.key_name] < self.distance[min_node.key_name]:
             # the new node has smaller key value, so change the min node to this new node
             new_node.next = min_node_next
             new_node.prev = min_node
@@ -982,8 +1008,8 @@ class FibonacciHeap:
         else:
             self.change_min_node(smaller_node.child,greater_node)
     def merge(self,left_node,right_node):
-        left_node_key_value = left_node.key_value
-        right_node_key_value = right_node.key_value
+        left_node_key_value = self.distance[left_node.key_name]
+        right_node_key_value = self.distance[right_node.key_name]
         if left_node_key_value <= right_node_key_value:
             # right node will be the child of left node
             self.merge_and_change_min_node(left_node,right_node)
@@ -1036,7 +1062,7 @@ class FibonacciHeap:
         start_node = self.min_root
         start_node_next = start_node.next
         while start_node_next != start_node:
-            if start_node_next.key_value < self.min_root.key_value:
+            if self.distance[start_node_next.key_name] < self.distance[self.min_root.key_name]:
                 self.min_root = start_node_next
             start_node_next = start_node_next.next
     def consolidate(self):
@@ -1053,11 +1079,12 @@ class FibonacciHeap:
         else:
             self.bucket[rank] = fibonacci_node
         return start_node_next
-    def decrease_key(self,fibonacci_node,new_key_value):
+    def decrease_key(self,source_vertex,fibonacci_node,new_key_value):
         parent = fibonacci_node.parent
-        if fibonacci_node.key_value > new_key_value:
-            fibonacci_node.key_value = new_key_value
-        if not (parent == None or (parent and parent.key_value <= new_key_value)):
+        if self.distance[fibonacci_node.key_name] > new_key_value:
+            self.predecessor[fibonacci_node.key_name] = source_vertex.key_name
+            self.distance[fibonacci_node.key_name] = new_key_value
+        if not (parent == None or (parent and self.distance[parent.key_name] <= new_key_value)):
             # it means it is not a tree root
             self.cut(fibonacci_node)
             while parent and parent.marked:
@@ -1104,7 +1131,7 @@ def main():
     weighted_graph.adj(e,{"vertex":f,"weight":1})
     weighted_graph.adj(e,{"vertex":g,"weight":1})
     weighted_graph.adj(f,{"vertex":g,"weight":1})
-    print(weighted_graph.from_source_to_calculate_shortest_paths_using_dijkstra(a))
+    weighted_graph.from_source_to_calculate_shortest_paths_using_dijkstra(a,g)
     print(weighted_graph.distance)
     print(weighted_graph.predecessor)
 if __name__ == "__main__":
