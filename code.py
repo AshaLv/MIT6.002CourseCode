@@ -817,7 +817,7 @@ class WeightedGraph(DirectedGraph):
         else:
             self.vertices.append(u)        
     def initialize(self,s,distance=None,predecessor=None):
-        if not distance and not predecessor:
+        if distance == None and predecessor == None:
             self.predecessor = {}
             self.distance = {}
             distance = self.distance
@@ -866,22 +866,38 @@ class WeightedGraph(DirectedGraph):
         backward_predecessor = {}
         self.initialize(s,forward_distance,forward_predecessor)
         self.initialize(v,backward_distance,backward_predecessor)
+        forward_fib_heap.distance = forward_distance
+        forward_fib_heap.predecessor = forward_predecessor
+        backward_fib_heap.distance = backward_distance
+        backward_fib_heap.predecessor = backward_predecessor
         import math
         import copy
         for u in self.vertices:
-            forward_fib_heap.insert(copy.copy(u))
-            backward_fib_heap.insert(copy.copy(u))
-        shortest_path_s = []
-        while fib_heap.number_of_nodes:
-            min_path_vertex = fib_heap.delete_min()
-            self.distance[min_path_vertex.key_name] = min_path_vertex.key_value
-            if min_path_vertex == v:
-                return shortest_path_s
-            for u in min_path_vertex.out_edges:
+            forward_fib_heap.insert(copy.deepcopy(u))
+            backward_fib_heap.insert(copy.deepcopy(u))
+        while forward_fib_heap.number_of_nodes:
+            forward_min_path_vertex = forward_fib_heap.delete_min()
+            backward_min_path_vertex = backward_fib_heap.delete_min()
+            if forward_min_path_vertex.key_name == backward_min_path_vertex.key_name:
+                # find the minimum sum of common vertex in both side 
+                min_sum = math.inf
+                min_common_vertex = None
+                for vertex in forward_distance:
+                    if vertex in backward_distance:
+                        if min_sum > (forward_distance[vertex] + backward_distance[vertex]):
+                            min_sum = (forward_distance[vertex] + backward_distance[vertex])
+                            min_common_vertex = vertex
+                return (min_common_vertex,forward_distance,forward_predecessor,backward_distance,backward_predecessor)
+            for u in forward_min_path_vertex.out_edges:
                 u_vertex = u["vertex"]
                 u_weight = u["weight"]
-                u_new_key_value = min_path_vertex.key_value + u_weight
-                fib_heap.decrease_key(self.predecessor,min_path_vertex,u_vertex,u_new_key_value)
+                u_new_key_value = forward_distance[forward_min_path_vertex.key_name] + u_weight
+                forward_fib_heap.decrease_key(forward_min_path_vertex,u_vertex,u_new_key_value)
+            for u in backward_min_path_vertex.in_edges:
+                u_vertex = u["vertex"]
+                u_weight = u["weight"]
+                u_new_key_value = backward_distance[backward_min_path_vertex.key_name] + u_weight
+                backward_fib_heap.decrease_key(backward_min_path_vertex,u_vertex,u_new_key_value)
     def from_source_to_calculate_shortest_paths_using_dijkstra(self,s,v=None):
         fib_heap = FibonacciHeap()
         self.initialize(s)
@@ -1084,6 +1100,8 @@ class FibonacciHeap:
         if self.distance[fibonacci_node.key_name] > new_key_value:
             self.predecessor[fibonacci_node.key_name] = source_vertex.key_name
             self.distance[fibonacci_node.key_name] = new_key_value
+            if not parent: 
+                self.cut(fibonacci_node)
         if not (parent == None or (parent and self.distance[parent.key_name] <= new_key_value)):
             # it means it is not a tree root
             self.cut(fibonacci_node)
@@ -1131,8 +1149,11 @@ def main():
     weighted_graph.adj(e,{"vertex":f,"weight":1})
     weighted_graph.adj(e,{"vertex":g,"weight":1})
     weighted_graph.adj(f,{"vertex":g,"weight":1})
-    weighted_graph.from_source_to_calculate_shortest_paths_using_dijkstra(a,g)
-    print(weighted_graph.distance)
-    print(weighted_graph.predecessor)
+    min_common_vertex,forward_distance,forward_predecessor,backward_distance,backward_predecessor = weighted_graph.from_source_to_calculate_shortest_paths_using_bi_dijkstra(a,g)
+    print(min_common_vertex)
+    print(forward_distance)
+    print(forward_predecessor)
+    print(backward_distance)
+    print(backward_predecessor)
 if __name__ == "__main__":
     main()
