@@ -1128,32 +1128,66 @@ class FibonacciNode:
     def __str__(self):
         return self.key_name
 
-
-
-   
+class DP:
+    @staticmethod
+    def get_fibonacci_number(n):
+        fib_memo = {
+            1:1,
+            2:1
+        }
+        if n <= 2:
+            return fib_memo[n]
+        for k in range(3,n+1):
+            fib_memo[k] = fib_memo[1] + fib_memo[2]
+            fib_memo[1] = fib_memo[2]
+            fib_memo[2] = fib_memo[k]
+        return fib_memo[n]
+    @staticmethod
+    def find_sp(wg,s,v=None):
+        total_length_of_vertices = len(wg.vertices)
+        is_v_found = False
+        layer = [s]
+        wg.initialize(s)
+        for _ in range(total_length_of_vertices):
+            temp_layer = []
+            if is_v_found:
+                return (wg.distance,wg.predecessor)
+            for vertex in layer:
+                for out_edge in vertex.out_edges:
+                    if out_edge == v:
+                        is_v_found = True
+                    if wg.distance[out_edge["vertex"].key_name] > wg.distance[vertex.key_name] + out_edge["weight"]:
+                        wg.distance[out_edge["vertex"].key_name] = wg.distance[vertex.key_name] + out_edge["weight"]
+                        wg.predecessor[out_edge["vertex"].key_name] = vertex.key_name
+                        temp_layer.append(out_edge["vertex"])
+            layer = temp_layer
+        return (wg.distance,wg.predecessor)
 def main():
     a = FibonacciNode("a")
     b = FibonacciNode("b")
     c = FibonacciNode("c")
     d = FibonacciNode("d")
     e = FibonacciNode("e")
-    f = FibonacciNode("f")
-    g = FibonacciNode("g")
-    weighted_graph = WeightedGraph(a)
-    weighted_graph.adj(a,{"vertex":b,"weight":4})
-    weighted_graph.adj(a,{"vertex":c,"weight":4})
-    weighted_graph.adj(b,{"vertex":c,"weight":4})
-    weighted_graph.adj(c,{"vertex":d,"weight":2})
-    weighted_graph.adj(c,{"vertex":e,"weight":2})
-    weighted_graph.adj(d,{"vertex":e,"weight":2})
-    weighted_graph.adj(e,{"vertex":f,"weight":1})
-    weighted_graph.adj(e,{"vertex":g,"weight":1})
-    weighted_graph.adj(f,{"vertex":g,"weight":1})
-    min_common_vertex,forward_distance,forward_predecessor,backward_distance,backward_predecessor = weighted_graph.from_source_to_calculate_shortest_paths_using_bi_dijkstra(a,g)
-    print(min_common_vertex)
-    print(forward_distance)
-    print(forward_predecessor)
-    print(backward_distance)
-    print(backward_predecessor)
+    wg = WeightedGraph(a)
+    wg.adj(a,{"vertex":b,"weight":10})
+    wg.adj(a,{"vertex":c,"weight":3})
+    wg.adj(b,{"vertex":c,"weight":1})
+    wg.adj(b,{"vertex":d,"weight":2})
+    wg.adj(c,{"vertex":b,"weight":4})
+    wg.adj(c,{"vertex":e,"weight":2})
+    wg.adj(c,{"vertex":d,"weight":8})
+    wg.adj(d,{"vertex":e,"weight":7})
+    wg.adj(e,{"vertex":d,"weight":9})
+    print(DP.find_sp(wg,a))
+    #------------------------------------------
+    print(DP.get_fibonacci_number(1))
+    print(DP.get_fibonacci_number(2))
+    print(DP.get_fibonacci_number(3))
+    print(DP.get_fibonacci_number(4))
+    print(DP.get_fibonacci_number(5))
+    print(DP.get_fibonacci_number(6))
+    print(DP.get_fibonacci_number(7))
+
 if __name__ == "__main__":
     main()
+
