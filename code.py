@@ -1128,6 +1128,42 @@ class FibonacciNode:
     def __str__(self):
         return self.key_name
 
+# below is for Danamic Programming
+from random import random
+import math
+class Deck:
+    SHAPES = ["hearts","clubs","spades","diamonds"]
+    NUMBERS = ["A","2","3","4","5","6","7","8","9","10","j","q","k"]
+    def __init__(self):
+        self.cards = []
+        for s in Deck.SHAPES:
+            for n in Deck.NUMBERS:
+                self.cards.append((s,n))
+    def shuffle(self):
+        new_cards = []  
+        count = 52 # number of cards left being selected
+        while count:
+            random_number = math.floor(random()*count) 
+            temp = self.cards[random_number]
+            self.cards[random_number] = self.cards[count - 1]
+            self.cards [count - 1] = temp
+            new_cards.append(temp)
+            count -= 1
+        self.cards = new_cards
+    def __str__(self):
+        s = ""
+        count = 1
+        for card in self.cards:
+            shape,number = card
+            s += " ["+shape+" "+number+"] "
+            if count != 52:
+                s += ","
+            count += 1
+        return s
+     
+
+
+
 class DP:
     @staticmethod
     def get_fibonacci_number(n):
@@ -1163,30 +1199,9 @@ class DP:
             layer = temp_layer
         return (wg.distance,wg.predecessor)
 def main():
-    a = FibonacciNode("a")
-    b = FibonacciNode("b")
-    c = FibonacciNode("c")
-    d = FibonacciNode("d")
-    e = FibonacciNode("e")
-    wg = WeightedGraph(a)
-    wg.adj(a,{"vertex":b,"weight":10})
-    wg.adj(a,{"vertex":c,"weight":3})
-    wg.adj(b,{"vertex":c,"weight":1})
-    wg.adj(b,{"vertex":d,"weight":2})
-    wg.adj(c,{"vertex":b,"weight":4})
-    wg.adj(c,{"vertex":e,"weight":2})
-    wg.adj(c,{"vertex":d,"weight":8})
-    wg.adj(d,{"vertex":e,"weight":7})
-    wg.adj(e,{"vertex":d,"weight":9})
-    print(DP.find_sp(wg,a))
-    #------------------------------------------
-    print(DP.get_fibonacci_number(1))
-    print(DP.get_fibonacci_number(2))
-    print(DP.get_fibonacci_number(3))
-    print(DP.get_fibonacci_number(4))
-    print(DP.get_fibonacci_number(5))
-    print(DP.get_fibonacci_number(6))
-    print(DP.get_fibonacci_number(7))
+    deck = Deck()
+    deck.shuffle()
+    print(deck)
 
 if __name__ == "__main__":
     main()
