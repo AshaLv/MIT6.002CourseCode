@@ -1133,15 +1133,20 @@ from random import random
 import math
 class Deck:
     SHAPES = ["hearts","clubs","spades","diamonds"]
-    NUMBERS = ["A","2","3","4","5","6","7","8","9","10","j","q","k"]
+    NUMBERS = ["a","2","3","4","5","6","7","8","9","10","j","q","k"]
+    COUNT = 52 # number of cards of one deck
+    DECK_NUMBER = 1 # number of decks
+    CARDS_COUNT = COUNT * DECK_NUMBER # total number of cards
     def __init__(self):
         self.cards = []
         for s in Deck.SHAPES:
             for n in Deck.NUMBERS:
                 self.cards.append((s,n))
+        for _ in range(Deck.DECK_NUMBER-1):
+            self.cards.extend(self.cards)
     def shuffle(self):
         new_cards = []  
-        count = 52 # number of cards left being selected
+        count = Deck.COUNT * Deck.DECK_NUMBER
         while count:
             random_number = math.floor(random()*count) 
             temp = self.cards[random_number]
@@ -1150,6 +1155,45 @@ class Deck:
             new_cards.append(temp)
             count -= 1
         self.cards = new_cards
+    def blackjack_sum_cards(self,first_card_index,second_card_index,from_card_index=None,to_card_index=None):
+        number_of_ace = 0
+        first_card_number = self.get_value_for_blackjack(first_card_index)
+        second_card_number = self.get_value_for_blackjack(second_card_index)
+        number_of_ace += self.add_ace_number(first_card_index)
+        number_of_ace += self.add_ace_number(second_card_index)
+        s = first_card_number + second_card_number
+        if from_card_index:
+            for i in range(from_card_index,to_card_index):
+                card_number = self.get_value_for_blackjack(i)
+                number_of_ace += self.add_ace_number(i)
+                s += card_number
+        s,number_of_ace = self.adjust_to_normal_sum_using_ace_to_be_1(s,number_of_ace)
+        return s
+    def get_value_for_blackjack(self,card_index):
+        card = self.cards[card_index][1]
+        if card == "a":
+            return 11
+        elif card == "j" or card == "q" or card == "k":
+            return 10
+        else:
+            return int(card)
+    def add_ace_number(self,card_index):
+        card = self.cards[card_index][1]
+        if card == "a":
+            return 1
+        return 0
+    def adjust_to_normal_sum_using_ace_to_be_1(self,s,number_of_ace):
+        while s > 21 and number_of_ace:
+            number_of_ace -= 1
+            s -= 10
+        return (s,number_of_ace)
+    def compare_player_dealer_in_blackjack(self,player_cards_sum,dealer_cards_sum):
+        if player_cards_sum > dealer_cards_sum:
+            return 1
+        elif player_cards_sum < dealer_cards_sum:
+            return -1
+        else:
+            return 0
     def __str__(self):
         s = ""
         count = 1
@@ -1198,10 +1242,57 @@ class DP:
                         temp_layer.append(out_edge["vertex"])
             layer = temp_layer
         return (wg.distance,wg.predecessor)
+    @staticmethod
+    def find_best_strategy_win_blackjack(deck):
+        lose_one = -1
+        tie = 0
+        win_one = 1
+        tracking_for_best_strategy = {} #record how to play blackjack when knowing the deck
+        for i in range(Deck.CARDS_COUNT):
+            tracking_for_best_strategy[i] = {"winning_coins":0,"hits_number":None,"remaining_cards":None}
+        tracking_for_best_strategy[Deck.CARDS_COUNT] = {"winning_coins":0,"hits_number":None,"remaining_cards":None}
+        remaining_cards = 0 #cards on the table
+        while remaining_cards <= Deck.CARDS_COUNT: # number of subproblems
+            if remaining_cards < 4:
+                # at least 4 cards so this game can start
+                tracking_for_best_strategy[remaining_cards]["winning_coins"] = 0
+                remaining_cards += 1
+                continue
+            number_can_hits = remaining_cards - 4 #the number that a player can hit at most
+            for n in range(number_can_hits+1): # number of choices
+                player_cards_sum = deck.blackjack_sum_cards(-remaining_cards,-remaining_cards+2,-remaining_cards+4,-remaining_cards+4+n)
+                if player_cards_sum > 21:
+                    if (lose_one + tracking_for_best_strategy[remaining_cards-n-4]["winning_coins"]) >= tracking_for_best_strategy[remaining_cards]["winning_coins"]:
+                        tracking_for_best_strategy[remaining_cards]["winning_coins"] = lose_one + tracking_for_best_strategy[remaining_cards-n-4]["winning_coins"]
+                        tracking_for_best_strategy[remaining_cards]["hits_number"] = n
+                        tracking_for_best_strategy[remaining_cards]["remaining_cards"] = remaining_cards - n - 4
+                    remaining_cards += 1
+                    break
+                dealer_cards_ace_number = 0
+                dealer_draw_cards_count = 0
+                dealer_cards_sum = deck.blackjack_sum_cards(-remaining_cards+1,-remaining_cards+3)
+                dealer_cards_ace_number += deck.add_ace_number(-remaining_cards+1)
+                dealer_cards_ace_number += deck.add_ace_number(-remaining_cards+3)
+                while dealer_cards_sum < 17 and (remaining_cards - 4 - n - dealer_draw_cards_count) > 0:
+                    dealer_draw_cards_count += 1
+                    dealer_cards_sum += deck.get_value_for_blackjack(-remaining_cards+4+n+dealer_draw_cards_count)
+                    dealer_cards_ace_number += deck.add_ace_number(-remaining_cards+4+n+dealer_draw_cards_count)
+                    dealer_cards_sum,dealer_cards_ace_number = deck.adjust_to_normal_sum_using_ace_to_be_1(dealer_cards_sum,dealer_cards_ace_number)
+                if dealer_cards_sum > 21:
+                    dealer_cards_sum = 0
+                compare_result = deck.compare_player_dealer_in_blackjack(player_cards_sum,dealer_cards_sum)
+                if (compare_result + tracking_for_best_strategy[remaining_cards-n-4-dealer_draw_cards_count]["winning_coins"]) >= tracking_for_best_strategy[remaining_cards]["winning_coins"]:
+                    tracking_for_best_strategy[remaining_cards]["winning_coins"] = compare_result + tracking_for_best_strategy[remaining_cards-n-4-dealer_draw_cards_count]["winning_coins"]
+                    tracking_for_best_strategy[remaining_cards]["hits_number"] = n
+                    tracking_for_best_strategy[remaining_cards]["remaining_cards"] = remaining_cards - n - 4 - dealer_draw_cards_count
+            remaining_cards += 1
+        return tracking_for_best_strategy
+            
+
 def main():
     deck = Deck()
     deck.shuffle()
-    print(deck)
+    print(DP.find_best_strategy_win_blackjack(deck))
 
 if __name__ == "__main__":
     main()
