@@ -1128,7 +1128,8 @@ class FibonacciNode:
     def __str__(self):
         return self.key_name
 
-# below is for Danamic Programming
+# below is for Danamic Programming--------------------------
+
 from random import random
 import math
 class Deck:
@@ -1205,9 +1206,6 @@ class Deck:
             count += 1
         return s
      
-
-
-
 class DP:
     @staticmethod
     def get_fibonacci_number(n):
@@ -1287,12 +1285,34 @@ class DP:
                     tracking_for_best_strategy[remaining_cards]["remaining_cards"] = remaining_cards - n - 4 - dealer_draw_cards_count
             remaining_cards += 1
         return tracking_for_best_strategy
+    @staticmethod
+    def text_justification(text):
+        # subproblems: justify remaining text 1..n to have the minimum badness
+        # guess: which word is the last word of the line 0..n
+        # subproblem:
+            #try every guess to solve a subproblem to have the minimum badness
+        # recurrence/bottom up: solve every subproblem
+        # finish: solve the subproblem when remaining text is n
+        words = text.get_paragraph_words()
+        total_words_number = len(words)
+        justify_memo = {}
+        justify_parent = {}
+        for i in range(1,total_words_number):
+            justify_memo[i] = math.inf
+        for remaining_words_number in range(1,total_words+1):
+            start_word_index = total_words_number - remaining_words_number
+            for i in range(remaining_words_number):
+                stop_word_index = start_word_index + i
+                badness_value = badness(start_word_index,stop_word_index)
+                if badness_value < justify_memo[remaining_words_number]:
+                    justify_memo[remaining_words_number] = badness_value
+                    justify_parent[start_word_index] = stop_word_index
+                
+
             
 
 def main():
-    deck = Deck()
-    deck.shuffle()
-    print(DP.find_best_strategy_win_blackjack(deck))
+    pass
 
 if __name__ == "__main__":
     main()
