@@ -1205,7 +1205,22 @@ class Deck:
                 s += ","
             count += 1
         return s
-     
+class Text:
+    def __init__(self,text,screen_width):
+        self.text = text
+        self.screen_width = screen_width
+        self.words = None
+    def get_words(self):
+        self.words = self.text.split()
+        return self.words
+    def badness(self,start_word_index,stop_word_index):
+        words_width = 0
+        words_width += len(self.words[start_word_index])
+        for i in range(start_word_index+1,stop_word_index+1):
+            words_width += (1 + len(self.words[i]))
+        if words_width > self.screen_width:
+            return math.inf
+        return ((self.screen_width - words_width) ** 3)
 class DP:
     @staticmethod
     def get_fibonacci_number(n):
@@ -1287,32 +1302,60 @@ class DP:
         return tracking_for_best_strategy
     @staticmethod
     def text_justification(text):
-        # subproblems: justify remaining text 1..n to have the minimum badness
+        # subproblems: justify remaining text 0..n to have the minimum badness
         # guess: which word is the last word of the line 0..n
         # subproblem:
             #try every guess to solve a subproblem to have the minimum badness
         # recurrence/bottom up: solve every subproblem
         # finish: solve the subproblem when remaining text is n
-        words = text.get_paragraph_words()
+        words = text.get_words()
         total_words_number = len(words)
-        justify_memo = {}
-        justify_parent = {}
-        for i in range(1,total_words_number):
-            justify_memo[i] = math.inf
-        for remaining_words_number in range(1,total_words+1):
+        justify = {}
+        for i in range(0,total_words_number+1):
+            justify[i] = {"badness":math.inf,"start_word_index":None,"stop_word_index":None,"remaining_words_number":None}
+        justify[0] = {"badness":0,"start_word_index":None,"stop_word_index":None,"remaining_words_number":None}
+        for remaining_words_number in range(0,total_words_number+1):
             start_word_index = total_words_number - remaining_words_number
-            for i in range(remaining_words_number):
-                stop_word_index = start_word_index + i
-                badness_value = badness(start_word_index,stop_word_index)
-                if badness_value < justify_memo[remaining_words_number]:
-                    justify_memo[remaining_words_number] = badness_value
-                    justify_parent[start_word_index] = stop_word_index
-                
+            for stop_word_index in range(start_word_index,total_words_number):
+                badness_value = text.badness(start_word_index,stop_word_index) + justify[total_words_number-(stop_word_index+1)]["badness"]
+                if badness_value < justify[remaining_words_number]["badness"]:
+                    justify[remaining_words_number]["badness"] = badness_value
+                    justify[remaining_words_number]["start_word_index"] = start_word_index
+                    justify[remaining_words_number]["stop_word_index"] = stop_word_index
+                    justify[remaining_words_number]["remaining_words_number"] = total_words_number - (stop_word_index+1)
+        new_text = ""
+        remaining_words_number = total_words_number
+        while remaining_words_number:
+            justify_info = justify[remaining_words_number]
+            start_word_index = justify_info["start_word_index"]
+            stop_word_index = justify_info["stop_word_index"]
+            for i in range(start_word_index,stop_word_index+1):
+                if i == start_word_index:
+                    new_text += text.words[i]
+                elif i == stop_word_index:
+                    new_text += (" " + text.words[i] + "\n")
+                else: 
+                    new_text += (" " + text.words[i]) 
+            remaining_words_number = justify_info["remaining_words_number"]
+        return new_text
 
             
 
 def main():
-    pass
+    p = """
+        I      am a servant of God
+        I hope that I can obey the
+        command of      God 
+        written in the bible  with 
+        my   whole          heart    
+        for God loves this heart
+        It                    is
+        my                  pray
+    """
+    print(p)
+    text = Text(p,26)
+    result = DP.text_justification(text)
+    print(result)
 
 if __name__ == "__main__":
     main()
