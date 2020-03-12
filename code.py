@@ -1221,6 +1221,11 @@ class Text:
         if words_width > self.screen_width:
             return math.inf
         return ((self.screen_width - words_width) ** 3)
+class Matrix:
+    def __init__(self,content):
+        self.content = content
+        self.row = len(content)
+        self.column = len(content[0])
 class DP:
     @staticmethod
     def get_fibonacci_number(n):
@@ -1338,24 +1343,63 @@ class DP:
                     new_text += (" " + text.words[i]) 
             remaining_words_number = justify_info["remaining_words_number"]
         return new_text
-
+    @staticmethod
+    def optimize_matrixes_multiplication(matrixes,i,j):
+        identifier = str(i)+str(j)
+        if identifier in matrixes_memo:
+            return matrixes_memo[identifier]["cost"]
+        if (j-i) == 1:
+            i_matrix = matrixes[i]
+            j_matrix = matrixes[j]
+            cost = (i_matrix.row * j_matrix.column) * i_matrix.column
+            matrixes_memo[identifier] = {}
+            matrixes_memo[identifier]["row_column"] = (i_matrix.row,j_matrix.column)
+            matrixes_memo[identifier]["left"] = None
+            matrixes_memo[identifier]["right"] = None
+            matrixes_memo[identifier]["cost"] = cost
+            return cost
+        elif (j-i) == 0:
+            matrix = matrixes[i]
+            matrixes_memo[identifier] = {}
+            matrixes_memo[identifier]["row_column"] = (matrix.row,matrix.column)
+            matrixes_memo[identifier]["left"] = None
+            matrixes_memo[identifier]["right"] = None
+            matrixes_memo[identifier]["cost"] = 0
+            return 0
+        else:
+            #guess k from i to j-1
+            if identifier not in matrixes_memo:
+                matrixes_memo[identifier] = {}
+                matrixes_memo[identifier]["row_column"] = None
+                matrixes_memo[identifier]["left"] = None
+                matrixes_memo[identifier]["right"] = None
+                matrixes_memo[identifier]["cost"] = math.inf
+            for k in range(i,j):
+                left_matrix_cost = DP.optimize_matrixes_multiplication(matrixes,i,k)
+                left_identifier = str(i) + str(k)
+                left_row,left_column = matrixes_memo[left_identifier]["row_column"]
+                righ_matrix_cost = DP.optimize_matrixes_multiplication(matrixes,k+1,j)
+                right_identifier = str(k+1) + str(j)
+                right_row,right_column = matrixes_memo[right_identifier]["row_column"]
+                self_cost = (left_row*right_column)*left_column
+                total_cost = self_cost + left_matrix_cost + righ_matrix_cost
+                if total_cost < matrixes_memo[identifier]["cost"]:
+                    matrixes_memo[identifier]["row_column"] = (left_row,right_column)
+                    matrixes_memo[identifier]["left"] = left_identifier
+                    matrixes_memo[identifier]["right"] = right_identifier
+                    matrixes_memo[identifier]["cost"] = total_cost
+            return total_cost
             
-
+matrixes_memo = {}
 def main():
-    p = """
-        I      am a servant of God
-        I hope that I can obey the
-        command of      God 
-        written in the bible  with 
-        my   whole          heart    
-        for God loves this heart
-        It                    is
-        my                  pray
-    """
-    print(p)
-    text = Text(p,26)
-    result = DP.text_justification(text)
-    print(result)
+    m1 = Matrix([[1],[2],[3],[4],[5],[6],[7]])
+    m2 = Matrix([[1,2,3,4,5,6,7]])
+    m3 = Matrix([[1],[2],[3],[4],[5],[6],[7]])
+    matrixes = [m1,m2,m3]
+    i = 0
+    j = 2
+    DP.optimize_matrixes_multiplication(matrixes,i,j)
+    print(matrixes_memo)
 
 if __name__ == "__main__":
     main()
