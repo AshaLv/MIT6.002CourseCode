@@ -1389,17 +1389,54 @@ class DP:
                     matrixes_memo[identifier]["right"] = right_identifier
                     matrixes_memo[identifier]["cost"] = total_cost
             return total_cost
+    @staticmethod
+    def edit_distance(x,y,i,j):
+        identifier = str(i) + str(j)
+        if identifier in edit_distance_memo:
+            return edit_distance_memo[identifier]["cost"]
+        else:
+            edit_distance_memo[identifier] = {}
+            edit_distance_memo_structure_helper(identifier,None,None,None,math.inf)
+        if i >= len(x) and j >= len(y):
+            return 0
+        elif i >= len(x):
+            cost = 1 + DP.edit_distance(x,y,i,j+1)
+            cost = edit_distance_memo_structure_helper(identifier,"insert",str(i)+str(j+1),y[j],cost)
+        elif j >= len(y):
+            cost = 1 + DP.edit_distance(x,y,i+1,j)
+            cost = edit_distance_memo_structure_helper(identifier,"delete",str(i+1)+str(j),x[i],cost)
+        else:
+            insert_cost = 1 + DP.edit_distance(x,y,i,j+1)
+            if insert_cost < edit_distance_memo[identifier]["cost"]:
+                cost = edit_distance_memo_structure_helper(identifier,"insert",str(i)+str(j+1),y[j],insert_cost)
+            delete_cost = 1 + DP.edit_distance(x,y,i+1,j)
+            if delete_cost < edit_distance_memo[identifier]["cost"]:
+                cost = edit_distance_memo_structure_helper(identifier,"delete",str(i+1)+str(j),x[i],delete_cost)
+            if x[i] == y[j]:
+                replace_cost = DP.edit_distance(x,y,i+1,j+1)
+                if replace_cost < edit_distance_memo[identifier]["cost"]: 
+                    cost = edit_distance_memo_structure_helper(identifier,"replace",str(i+1)+str(j+1),x[i],replace_cost)
+        return cost
             
 matrixes_memo = {}
+edit_distance_memo = {}
+def edit_distance_memo_structure_helper(identifier,operation,next_identifier,value,cost):
+    edit_distance_memo[identifier]["operation"] = operation
+    edit_distance_memo[identifier]["next"] = next_identifier
+    edit_distance_memo[identifier]["value"] = value
+    edit_distance_memo[identifier]["cost"] = cost
+    return cost
 def main():
-    m1 = Matrix([[1],[2],[3],[4],[5],[6],[7]])
-    m2 = Matrix([[1,2,3,4,5,6,7]])
-    m3 = Matrix([[1],[2],[3],[4],[5],[6],[7]])
-    matrixes = [m1,m2,m3]
-    i = 0
-    j = 2
-    DP.optimize_matrixes_multiplication(matrixes,i,j)
-    print(matrixes_memo)
+    x = "aabb3423242899ccdd83193ee432rerererer"
+    y = "aafiehwffwyfhewibbcchidddehiweeeeererer"
+    DP.edit_distance(x,y,0,0)
+    longgest_common_sequences = ""
+    identifier = "00"
+    while identifier in edit_distance_memo:
+        if edit_distance_memo[identifier]["operation"] == "replace":
+            longgest_common_sequences += edit_distance_memo[identifier]["value"]
+        identifier = edit_distance_memo[identifier]["next"]
+    print(longgest_common_sequences)
 
 if __name__ == "__main__":
     main()
