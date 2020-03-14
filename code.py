@@ -1417,27 +1417,58 @@ class DP:
                 if replace_cost < edit_distance_memo[identifier]["cost"]: 
                     cost = edit_distance_memo_structure_helper(identifier,"replace",str(i+1)+str(j+1),x[i],replace_cost)
         return cost
-            
+    @staticmethod
+    def show_most_desire_knapsack_strategy(items,which,knapsack_size):
+        if which == len(items):
+            return 0
+        if which not in knapsack_memo:
+            knapsack_memo[which] = {}
+        else:
+            return knapsack_memo[which]["desire"]
+        desire_when_put_in = -1
+        if knapsack_size >= items[which].size:
+            desire_when_put_in = items[which].desire + DP.show_most_desire_knapsack_strategy(items,which+1,knapsack_size-items[which].size)
+        desire_when_abandon = DP.show_most_desire_knapsack_strategy(items,which+1,knapsack_size)
+        if desire_when_abandon > desire_when_put_in:
+            knapsack_memo_structure_helper(which,"abandon "+items[which].name,desire_when_abandon)
+            return desire_when_abandon
+        else:
+            knapsack_memo_structure_helper(which,"put in "+items[which].name,desire_when_put_in)
+            return desire_when_put_in
+         
 matrixes_memo = {}
 edit_distance_memo = {}
+knapsack_memo = {}
 def edit_distance_memo_structure_helper(identifier,operation,next_identifier,value,cost):
     edit_distance_memo[identifier]["operation"] = operation
     edit_distance_memo[identifier]["next"] = next_identifier
     edit_distance_memo[identifier]["value"] = value
     edit_distance_memo[identifier]["cost"] = cost
     return cost
+def knapsack_memo_structure_helper(identifier,operation,desire):
+    knapsack_memo[identifier]["operation"] = operation
+    knapsack_memo[identifier]["desire"] = desire
+class KnapsackItem:
+    def __init__(self,name,size,desire):
+        self.name = name
+        self.size = size
+        self.desire = desire
+class Knapsack:
+    def __init__(self,size):
+        self.size = size
 def main():
-    x = "aabb3423242899ccdd83193ee432rerererer"
-    y = "aafiehwffwyfhewibbcchidddehiweeeeererer"
-    DP.edit_distance(x,y,0,0)
-    longgest_common_sequences = ""
-    identifier = "00"
-    while identifier in edit_distance_memo:
-        if edit_distance_memo[identifier]["operation"] == "replace":
-            longgest_common_sequences += edit_distance_memo[identifier]["value"]
-        identifier = edit_distance_memo[identifier]["next"]
-    print(longgest_common_sequences)
-
+    knapsack = Knapsack(100)
+    cat = KnapsackItem("cat",40,25)
+    dog = KnapsackItem("dog",50,20)
+    food = KnapsackItem("food",32,30)
+    little_stuff = KnapsackItem("little stuff",5,10)
+    candy = KnapsackItem("candy",3,3)
+    mirror = KnapsackItem("mirror",2,2)
+    shoes = KnapsackItem("shoes",12,23)
+    hat = KnapsackItem("hat",20,40)
+    items = [cat,dog,food,little_stuff,candy,mirror,shoes,hat]
+    DP.show_most_desire_knapsack_strategy(items,0,knapsack.size)
+    print(knapsack_memo)
 if __name__ == "__main__":
     main()
 
