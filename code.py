@@ -1435,10 +1435,31 @@ class DP:
         else:
             knapsack_memo_structure_helper(which,"put in "+items[which].name,desire_when_put_in)
             return desire_when_put_in
+    @staticmethod
+    def get_piano_notes_figures_guide(n,finger_for_this_note):
+        identifier = n
+        if n == len(notes) - 1:
+            return 0
+        if identifier not in piano_notes_figures_guide_memo:
+            piano_notes_figures_guide_memo[identifier] = {}
+            piano_notes_figures_guide_memo_structure_helper(identifier,None,math.inf)
+        else:
+            return piano_notes_figures_guide_memo[identifier]["difficulty"]
+        for next_finger_for_next_note in ["1","2","3","4","5"]:
+            difficulty = get_piano_notes_fingers_transistor_difficulty(notes[n],finger_for_this_note,notes[n+1],next_finger_for_next_note) + DP.get_piano_notes_figures_guide(n+1,next_finger_for_next_note)
+            if difficulty < piano_notes_figures_guide_memo[identifier]["difficulty"]:
+                piano_notes_figures_guide_memo_structure_helper(identifier,finger_for_this_note,difficulty)
+                next_best_figure_for_next_note = next_finger_for_next_note
+        if n == len(notes) - 2:
+            piano_notes_figures_guide_memo[n+1] = {}
+            piano_notes_figures_guide_memo_structure_helper(n+1,next_best_figure_for_next_note,0)
+        return difficulty
+        
          
 matrixes_memo = {}
 edit_distance_memo = {}
 knapsack_memo = {}
+piano_notes_figures_guide_memo = {}
 def edit_distance_memo_structure_helper(identifier,operation,next_identifier,value,cost):
     edit_distance_memo[identifier]["operation"] = operation
     edit_distance_memo[identifier]["next"] = next_identifier
@@ -1448,6 +1469,14 @@ def edit_distance_memo_structure_helper(identifier,operation,next_identifier,val
 def knapsack_memo_structure_helper(identifier,operation,desire):
     knapsack_memo[identifier]["operation"] = operation
     knapsack_memo[identifier]["desire"] = desire
+def piano_notes_figures_guide_memo_structure_helper(identifier,finger_for_this_note,difficulty):
+    piano_notes_figures_guide_memo[identifier]["finger_for_this_note"] = finger_for_this_note
+    piano_notes_figures_guide_memo[identifier]["difficulty"] = difficulty
+def get_piano_notes_fingers_transistor_difficulty(note1,finger1,note2,finger2):
+    # need to do some research or play the piano to experience to finish this implementation
+    return 1
+notes = [".6",".7","1","2","3","4","5","6","7","1.","2.","3."]
+
 class KnapsackItem:
     def __init__(self,name,size,desire):
         self.name = name
@@ -1457,18 +1486,9 @@ class Knapsack:
     def __init__(self,size):
         self.size = size
 def main():
-    knapsack = Knapsack(100)
-    cat = KnapsackItem("cat",40,25)
-    dog = KnapsackItem("dog",50,20)
-    food = KnapsackItem("food",32,30)
-    little_stuff = KnapsackItem("little stuff",5,10)
-    candy = KnapsackItem("candy",3,3)
-    mirror = KnapsackItem("mirror",2,2)
-    shoes = KnapsackItem("shoes",12,23)
-    hat = KnapsackItem("hat",20,40)
-    items = [cat,dog,food,little_stuff,candy,mirror,shoes,hat]
-    DP.show_most_desire_knapsack_strategy(items,0,knapsack.size)
-    print(knapsack_memo)
+    for finger_for_this_note in ["1","2","3","4","5"]:
+        DP.get_piano_notes_figures_guide(0,finger_for_this_note)
+    print(piano_notes_figures_guide_memo)
 if __name__ == "__main__":
     main()
 
